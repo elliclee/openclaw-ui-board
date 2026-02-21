@@ -32,7 +32,7 @@ This project provides a graphical interface (GUI) to managing the powerful but C
 Clone this repository to your local machine:
 
 ```bash
-git clone https://github.com/yourusername/openclaw-ui-board.git
+git clone https://github.com/elliclee/openclaw-ui-board.git
 cd openclaw-ui-board
 
 # Install dependencies for both the Backend and Frontend
