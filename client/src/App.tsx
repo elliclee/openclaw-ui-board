@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { LayoutDashboard, Settings, RefreshCw, Edit2, Play, Activity, Trash2, X } from 'lucide-react';
 
 const API_BASE = 'http://localhost:9009/api';
 
@@ -20,6 +21,13 @@ function App() {
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [runs, setRuns] = useState<any[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [loadingAction, setLoadingAction] = useState<{ id: string; action: string } | null>(null);
+  const [theme, setTheme] = useState(() => localStorage.getItem('openclaw-theme') || 'retro');
+
+  useEffect(() => {
+    document.body.setAttribute('data-theme', theme);
+    localStorage.setItem('openclaw-theme', theme);
+  }, [theme]);
 
   useEffect(() => {
     fetchData(true);
@@ -63,21 +71,25 @@ function App() {
 
   const handleAction = async (id: string, action: string) => {
     try {
+      setLoadingAction({ id, action });
       const res = await fetch(`${API_BASE}/cron/jobs/${id}/${action}`, { method: 'POST' });
       const data = await res.json();
       if (data.error) alert(data.error);
       else fetchData();
     } catch (err: any) { alert(err.message); }
+    finally { setLoadingAction(null); }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this cron job? This cannot be undone.')) return;
     try {
+      setLoadingAction({ id, action: 'delete' });
       const res = await fetch(`${API_BASE}/cron/jobs/${id}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.error) alert(data.error);
       else fetchData();
     } catch (err: any) { alert(err.message); }
+    finally { setLoadingAction(null); }
   };
 
   const viewRuns = async (id: string) => {
@@ -98,110 +110,194 @@ function App() {
 
   return (
     <div className="app-container">
-      {/* ─── Nav Bar ─────────────────────────── */}
-      <nav className="nav-bar">
-        <div className="nav-brand">
-          <h1>🦞 OpenClaw Cron</h1>
-          <div className={`nav-status ${error ? 'error' : ''}`}>
-            <span className="dot" />
-            {error ? 'Disconnected' : 'Connected'}
+      {/* ─── Sidebar ─────────────────────────── */}
+      <aside className="sidebar">
+        <div className="brand-logo">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5.5 8.5C5.5 8.5 7 5 12 5c5 0 6.5 3.5 6.5 3.5" />
+            <path d="M3 13.5c0 0 2-4.5 9-4.5s9 4.5 9 4.5" />
+            <path d="M12 2v3" />
+            <path d="M12 19v3" />
+            <circle cx="12" cy="14" r="5" />
+          </svg>
+          <h1>OpenClaw</h1>
+        </div>
+
+        <div className="nav-section">
+          <button className={`nav-item ${view === 'jobs' ? 'active' : ''}`} onClick={() => setView('jobs')}>
+            <LayoutDashboard /> Dashboard
+          </button>
+        </div>
+
+        <div className="nav-section">
+          <div className="nav-label">Settings</div>
+          {/* Hidden for now:
+          <button className="nav-item">
+            <User /> Profile
+          </button>
+          <button className="nav-item">
+            <Lock /> Security
+          </button>
+          <button className="nav-item">
+            <FileText /> Files
+          </button>
+          <button className="nav-item">
+            <Key /> API Keys
+          </button>
+          <button className="nav-item">
+            <Bell /> Notifications
+          </button>
+          */}
+          <button className={`nav-item ${view === 'settings' ? 'active' : ''}`} onClick={() => setView('settings')}>
+            <Settings /> Connection
+          </button>
+        </div>
+
+        <div className="user-profile">
+          <div className="avatar">
+            <img src="https://ui-avatars.com/api/?name=Admin+User&background=333&color=fff" alt="User" />
+          </div>
+          <div className="user-info">
+            <span className="user-name">Admin</span>
+            <span className="user-email">admin@openclaw.local</span>
           </div>
         </div>
-        <div className="nav-actions">
-          <button className={`tab ${view === 'jobs' ? 'active' : ''}`} onClick={() => setView('jobs')}>
-            Jobs
-          </button>
-          <button className={`tab ${view === 'settings' ? 'active' : ''}`} onClick={() => setView('settings')}>
-            Settings
-          </button>
-          <button className="icon-btn" onClick={() => fetchData()}>🔄</button>
-        </div>
-      </nav>
+      </aside>
 
       {/* ─── Main Content ────────────────────── */}
-      {view === 'jobs' ? (
-        <div className="card">
-          <div className="card-header">
-            <h2>Scheduled Jobs</h2>
-            {jobs.length > 0 && <span className="count">{jobs.length} jobs</span>}
-          </div>
-
-          {loading ? (
-            <div className="loading-state">
-              <div className="spinner" />
-              <p>Loading jobs from VPS…</p>
+      <div className="main-wrapper">
+        <header className="top-header">
+          <div className="header-title">
+            <div className="nav-icon" style={{ opacity: 0.5 }}>
+              <LayoutDashboard size={18} />
             </div>
-          ) : jobs.length === 0 ? (
-            <div className="empty-state">
-              <div className="icon">📋</div>
-              <p>No cron jobs found.<br />Check your connection settings.</p>
+            <h2>{view === 'jobs' ? 'Dashboard' : 'Settings'}</h2>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div className={`nav-status ${error ? 'error' : ''}`}>
+              <span className="dot" />
+              {error ? 'Disconnected' : 'Connected'}
+            </div>
+            <button className="icon-btn" onClick={() => fetchData()} title="Refresh Data">
+              <RefreshCw size={18} />
+            </button>
+          </div>
+        </header>
+
+        <main className="main-content">
+          {view === 'jobs' ? (
+            <div className="card">
+              <div className="card-header">
+                <h2>Scheduled Jobs</h2>
+                {jobs.length > 0 && <span className="count">{jobs.length} jobs</span>}
+              </div>
+
+              {loading ? (
+                <div className="loading-state">
+                  <RefreshCw className="spinner" size={24} />
+                  <p>Loading jobs from target…</p>
+                </div>
+              ) : jobs.length === 0 ? (
+                <div className="empty-state">
+                  <div className="icon"><LayoutDashboard size={48} /></div>
+                  <p>No cron jobs found.<br />Check your connection settings.</p>
+                </div>
+              ) : (
+                <div style={{ overflowX: 'auto', paddingBottom: '16px' }}>
+                  <table style={{ minWidth: '900px' }}>
+                    <thead>
+                      <tr>
+                        <th style={{ width: '28%' }}>Job</th>
+                        <th style={{ width: '18%' }}>Next Run</th>
+                        <th style={{ width: '12%' }}>Status</th>
+                        <th style={{ width: '10%' }}>Duration</th>
+                        <th style={{ width: '10%' }}>Delivery</th>
+                        <th style={{ width: '10%' }}>Actions</th>
+                        <th style={{ width: '12%' }}>Schedule</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {jobs.map((job: any) => (
+                        <tr key={job.id} className={`row-${job.status}`}>
+                          <td>
+                            <div className="job-name">{job.name}</div>
+                            <div className="job-id">{job.id}</div>
+                          </td>
+                          <td style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{job.next}</td>
+                          <td>
+                            <span className={`status-chip ${job.status}`}>
+                              <span className="status-dot" />
+                              {job.status}
+                            </span>
+                            {job.consecutiveErrors > 0 && (
+                              <div style={{ fontSize: '0.65rem', color: 'var(--error)', marginTop: '3px' }}>
+                                ⚠ {job.consecutiveErrors} consecutive error{job.consecutiveErrors > 1 ? 's' : ''}
+                              </div>
+                            )}
+                          </td>
+                          <td style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                            {fmtDuration(job.lastDurationMs)}
+                          </td>
+                          <td>
+                            <span className={`delivery-badge ${job.delivery?.mode === 'announce' ? 'active' : ''}`}>
+                              {job.delivery?.mode === 'announce' ? '📢' : '🔇'} {deliveryLabel(job.delivery)}
+                            </span>
+                          </td>
+                          <td>
+                            <div className="actions-cell" style={{ whiteSpace: 'nowrap' }}>
+                              <button className="text-btn" onClick={() => setSelectedJob(job)} title="Edit">
+                                <Edit2 size={14} />
+                              </button>
+                              <button
+                                className="text-btn"
+                                disabled={loadingAction?.id === job.id && (loadingAction?.action === 'enable' || loadingAction?.action === 'disable')}
+                                onClick={() => handleAction(job.id, job.status === 'disabled' ? 'enable' : (job.status === 'ok' ? 'disable' : 'enable'))}
+                              >
+                                {loadingAction?.id === job.id && (loadingAction?.action === 'enable' || loadingAction?.action === 'disable')
+                                  ? <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                                  : (job.status === 'disabled' ? 'Enable' : (job.status === 'ok' ? 'Disable' : 'Enable'))}
+                              </button>
+                              <button
+                                className="text-btn run"
+                                disabled={loadingAction?.id === job.id && loadingAction?.action === 'run'}
+                                onClick={() => handleAction(job.id, 'run')}
+                                title="Run Now"
+                              >
+                                {loadingAction?.id === job.id && loadingAction?.action === 'run'
+                                  ? <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                                  : <Play size={14} />}
+                              </button>
+                              <button className="text-btn" onClick={() => viewRuns(job.id)} title="View Logs">
+                                <Activity size={14} />
+                              </button>
+                              <button
+                                className="text-btn danger"
+                                disabled={loadingAction?.id === job.id && loadingAction?.action === 'delete'}
+                                onClick={() => handleDelete(job.id)}
+                                title="Delete"
+                              >
+                                {loadingAction?.id === job.id && loadingAction?.action === 'delete'
+                                  ? <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                                  : <Trash2 size={14} />}
+                              </button>
+                            </div>
+                          </td>
+                          <td>
+                            <span className="schedule-badge">{job.schedule}</span>
+                            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '2px' }}>{job.timezone}</div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           ) : (
-            <div style={{ overflowX: 'auto', paddingBottom: '16px' }}>
-              <table style={{ minWidth: '900px' }}>
-                <thead>
-                  <tr>
-                    <th style={{ width: '28%' }}>Job</th>
-                    <th style={{ width: '18%' }}>Next Run</th>
-                    <th style={{ width: '12%' }}>Status</th>
-                    <th style={{ width: '10%' }}>Duration</th>
-                    <th style={{ width: '10%' }}>Delivery</th>
-                    <th style={{ width: '10%' }}>Actions</th>
-                    <th style={{ width: '12%' }}>Schedule</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {jobs.map((job: any) => (
-                    <tr key={job.id} className={`row-${job.status}`}>
-                      <td>
-                        <div className="job-name">{job.name}</div>
-                        <div className="job-id">{job.id}</div>
-                      </td>
-                      <td style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{job.next}</td>
-                      <td>
-                        <span className={`status-chip ${job.status}`}>
-                          <span className="status-dot" />
-                          {job.status}
-                        </span>
-                        {job.consecutiveErrors > 0 && (
-                          <div style={{ fontSize: '0.65rem', color: 'var(--error)', marginTop: '3px' }}>
-                            ⚠ {job.consecutiveErrors} consecutive error{job.consecutiveErrors > 1 ? 's' : ''}
-                          </div>
-                        )}
-                      </td>
-                      <td style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                        {fmtDuration(job.lastDurationMs)}
-                      </td>
-                      <td>
-                        <span className={`delivery-badge ${job.delivery?.mode === 'announce' ? 'active' : ''}`}>
-                          {job.delivery?.mode === 'announce' ? '📢' : '🔇'} {deliveryLabel(job.delivery)}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="actions-cell" style={{ whiteSpace: 'nowrap' }}>
-                          <button className="text-btn" onClick={() => setSelectedJob(job)}>Edit</button>
-                          <button className="text-btn" onClick={() => handleAction(job.id, job.status === 'disabled' ? 'enable' : (job.status === 'ok' ? 'disable' : 'enable'))}>
-                            {job.status === 'disabled' ? 'Enable' : (job.status === 'ok' ? 'Disable' : 'Enable')}
-                          </button>
-                          <button className="text-btn run" onClick={() => handleAction(job.id, 'run')}>Run</button>
-                          <button className="text-btn" onClick={() => viewRuns(job.id)}>Logs</button>
-                          <button className="text-btn danger" onClick={() => handleDelete(job.id)}>Delete</button>
-                        </div>
-                      </td>
-                      <td>
-                        <span className="schedule-badge">{job.schedule}</span>
-                        <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '2px' }}>{job.timezone}</div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <SettingsPanel settings={settings} onSave={fetchSettings} theme={theme} setTheme={setTheme} />
           )}
-        </div>
-      ) : (
-        <SettingsPanel settings={settings} onSave={fetchSettings} />
-      )}
+        </main>
+      </div>
 
       {/* ─── Job Editor Modal ────────────────── */}
       {selectedJob && (
@@ -215,7 +311,7 @@ function App() {
           <div className="drawer">
             <div className="drawer-header">
               <h3>📊 Execution History</h3>
-              <button className="icon-btn" onClick={() => setIsHistoryOpen(false)}>✕</button>
+              <button className="icon-btn" onClick={() => setIsHistoryOpen(false)}><X size={20} /></button>
             </div>
             {runs.length === 0 ? (
               <div className="empty-state" style={{ padding: '40px 0' }}>
@@ -242,7 +338,7 @@ function App() {
 }
 
 /* ─── Settings Panel ────────────────────────────────── */
-function SettingsPanel({ settings, onSave }: { settings: any; onSave: () => void }) {
+function SettingsPanel({ settings, onSave, theme, setTheme }: { settings: any; onSave: () => void; theme: string; setTheme: (t: string) => void }) {
   const [formData, setFormData] = useState(settings || {});
   useEffect(() => { setFormData(settings || {}); }, [settings]);
 
@@ -271,7 +367,19 @@ function SettingsPanel({ settings, onSave }: { settings: any; onSave: () => void
 
   return (
     <div className="card settings-card">
-      <h3>Connection & CLI Configuration</h3>
+      <h3>UI Preferences</h3>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', marginBottom: '32px' }}>
+        <Field label="Theme">
+          <select value={theme} onChange={e => setTheme(e.target.value)}>
+            <option value="retro">Light Pixel Retro (Default)</option>
+            <option value="dark">Deep Dark Dashboard</option>
+          </select>
+        </Field>
+      </div>
+
+      <div className="section-divider" style={{ margin: '8px 0' }}>
+        <h3>Connection & CLI Configuration</h3>
+      </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
         <Field label="Host" hint="VPS IP / hostname. Leave empty or 'localhost' to execute commands locally.">
           <input value={formData.host || ''} onChange={e => setFormData({ ...formData, host: e.target.value })} placeholder="e.g. 192.168.1.100 (Empty = Local)" />

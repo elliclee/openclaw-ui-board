@@ -8,11 +8,13 @@ This project provides a graphical interface (GUI) to managing the powerful but C
 
 ## ✨ Features
 
-- **Modern & Responsive UI**: Glassmorphism, precise typography, and a "Premium Dark" theme designed for clarity.
+- **Modern & Responsive UI**: Glassmorphism, precise typography, and multiple themes.
+- **Dual Theme Switcher**: Toggle seamlessly between "Premium Dark" and "Retro Pixel" aesthetics directly from the UI.
 - **Remote Orchestration**: Connects directly to any VPS running `openclaw` via SSH to fetch statuses and execute commands. Safe and centralized.
 - **Granular Cron Management**:
   - Automatically parse `openclaw cron list --json` and provide visual states.
   - Enable, Disable, Run instantly, or Delete tasks directly from the UI.
+  - **Action Feedback**: Visual loading indicators and spinners during all job state changes.
 - **Advanced Job Editor**:
   - Visually edit scheduling (cron expressions) and timezone configurations.
   - Configure `Delivery` modes (`announce` or `none`), Channels (Telegram, Slack, Feishu), and routing targets.
