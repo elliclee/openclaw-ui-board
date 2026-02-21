@@ -1,0 +1,24 @@
+{
+  "name": "openclaw-ui-board",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server/index.js",
+    "dev": "concurrently \"node --watch server/index.js\" \"cd client && npm run dev\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^2.2.2",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "ssh2": "^1.17.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
