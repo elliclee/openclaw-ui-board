@@ -1,16 +1,25 @@
 {
   "name": "openclaw-ui-board",
   "version": "1.0.0",
-  "description": "",
+  "description": "A sleek, modern web-based management dashboard for OpenClaw Cron and autonomous agent tasks. Visually edit schedules, payloads, and monitor execution history.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server/index.js",
     "dev": "concurrently \"node --watch server/index.js\" \"cd client && npm run dev\""
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "openclaw",
+    "cron",
+    "dashboard",
+    "ai-agent",
+    "job-scheduler",
+    "task-manager",
+    "gui",
+    "react"
+  ],
+  "author": "Ellic Lee",
+  "license": "MIT",
   "dependencies": {
     "body-parser": "^2.2.2",
     "cors": "^2.8.6",

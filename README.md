@@ -1,8 +1,10 @@
 # OpenClaw UI Board
 
-A sleek, modern web-based management dashboard for **OpenClaw Cron** and agent tasks.
+🌐 [English](README.md) | [中文](README_zh-CN.md)
 
-This project provides a graphical interface (GUI) to managing the powerful but CLI-focused OpenClaw Cron system. It allows you to monitor, edit, and orchestrate your autonomous agents seamlessly through an elegant, Vercel/Linear-inspired dark mode dashboard.
+A sleek, modern web-based management dashboard for **OpenClaw Cron** and autonomous **AI agent** automation tasks.
+
+This project provides a graphical interface (GUI) to managing the powerful but CLI-focused OpenClaw Cron system. It allows you to monitor, edit, and orchestrate your AI agents, job scheduler, and background tasks seamlessly through an elegant, Vercel/Linear-inspired dark mode dashboard.
 
 ## ✨ Features
 
