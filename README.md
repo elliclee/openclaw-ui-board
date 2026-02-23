@@ -19,6 +19,11 @@ This project provides a graphical interface (GUI) to managing the powerful but C
   - Visually edit scheduling (cron expressions) and timezone configurations.
   - Configure `Delivery` modes (`announce` or `none`), Channels (Telegram, Slack, Feishu), and routing targets.
   - Reconfigure models and edit task `Payload Messages` inside a comfortable textarea without dealing with CLI escape characters.
+- **Sub-Agent Orchestration**:
+  - Full GUI for managing autonomous `openclaw agents`.
+  - Create new agents strictly following the CLI SOP (auto-generating workspace paths, inheriting authentication profiles, and seamless gateway reloading).
+  - Edit identity metadata (Name, Emoji) instantly.
+  - Network-resilient execution tunneling supporting complex SSH failovers.
 - **Execution History Tracking**: Integrated logs viewing. See exact duration, success/error status, and Raw JSONL outputs for the last 200 runs of any task.
 - **Security-First Config**: Credentials never touch the Git repository. Your SSH keys and server configs are stored locally inside `~/.openclaw-cron-ui/config.json`.
 
