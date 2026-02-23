@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, Settings, RefreshCw, Edit2, Play, Activity, Trash2, X } from 'lucide-react';
+import { LayoutDashboard, Settings, RefreshCw, Edit2, Play, Activity, Trash2, X, Bot } from 'lucide-react';
+import AgentsPanel from './components/AgentsPanel';
 
 const API_BASE = 'http://localhost:9009/api';
 
@@ -28,6 +29,15 @@ function App() {
     document.body.setAttribute('data-theme', theme);
     localStorage.setItem('openclaw-theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    const titles: Record<string, string> = {
+      jobs: 'Cron Jobs - OpenClaw',
+      agents: 'Agents - OpenClaw',
+      settings: 'Settings - OpenClaw'
+    };
+    document.title = titles[view] || 'OpenClaw';
+  }, [view]);
 
   useEffect(() => {
     fetchData(true);
@@ -114,19 +124,25 @@ function App() {
       <aside className="sidebar">
         <div className="brand-logo">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M5.5 8.5C5.5 8.5 7 5 12 5c5 0 6.5 3.5 6.5 3.5" />
-            <path d="M3 13.5c0 0 2-4.5 9-4.5s9 4.5 9 4.5" />
-            <path d="M12 2v3" />
-            <path d="M12 19v3" />
-            <circle cx="12" cy="14" r="5" />
+            <path d="M12 2v6" />
+            <path d="M12 8l4 4" />
+            <path d="M16 12v6a2 2 0 0 1-2 2" />
+            <path d="M12 8l-4 4" />
+            <path d="M8 12v6a2 2 0 0 0 2 2" />
           </svg>
           <h1>OpenClaw</h1>
         </div>
 
         <div className="nav-section">
-          <button className={`nav-item ${view === 'jobs' ? 'active' : ''}`} onClick={() => setView('jobs')}>
-            <LayoutDashboard /> Dashboard
-          </button>
+          <div className="nav-label">Dashboard</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <button className={`nav-item ${view === 'jobs' ? 'active' : ''}`} onClick={() => setView('jobs')}>
+              <LayoutDashboard /> Cron Jobs
+            </button>
+            <button className={`nav-item ${view === 'agents' ? 'active' : ''}`} onClick={() => setView('agents')}>
+              <Bot /> Agents
+            </button>
+          </div>
         </div>
 
         <div className="nav-section">
@@ -169,9 +185,9 @@ function App() {
         <header className="top-header">
           <div className="header-title">
             <div className="nav-icon" style={{ opacity: 0.5 }}>
-              <LayoutDashboard size={18} />
+              {view === 'jobs' ? <LayoutDashboard size={18} /> : view === 'agents' ? <Bot size={18} /> : <Settings size={18} />}
             </div>
-            <h2>{view === 'jobs' ? 'Dashboard' : 'Settings'}</h2>
+            <h2>{view === 'jobs' ? 'Dashboard' : view === 'agents' ? 'Agents' : 'Settings'}</h2>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div className={`nav-status ${error ? 'error' : ''}`}>
@@ -217,82 +233,87 @@ function App() {
                       </tr>
                     </thead>
                     <tbody>
-                      {jobs.map((job: any) => (
-                        <tr key={job.id} className={`row-${job.status}`}>
-                          <td>
-                            <div className="job-name">{job.name}</div>
-                            <div className="job-id">{job.id}</div>
-                          </td>
-                          <td style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{job.next}</td>
-                          <td>
-                            <span className={`status-chip ${job.status}`}>
-                              <span className="status-dot" />
-                              {job.status}
-                            </span>
-                            {job.consecutiveErrors > 0 && (
-                              <div style={{ fontSize: '0.65rem', color: 'var(--error)', marginTop: '3px' }}>
-                                ⚠ {job.consecutiveErrors} consecutive error{job.consecutiveErrors > 1 ? 's' : ''}
+                      {jobs.map((job: any) => {
+                        const effectiveStatus = !job.enabled ? 'disabled' : job.status;
+                        return (
+                          <tr key={job.id} className={`row-${effectiveStatus}`}>
+                            <td>
+                              <div className="job-name">{job.name}</div>
+                              <div className="job-id">{job.id}</div>
+                            </td>
+                            <td style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }} className="schedule-time">{job.next}</td>
+                            <td>
+                              <span className={`status-chip ${effectiveStatus}`}>
+                                <span className="status-dot" />
+                                {effectiveStatus}
+                              </span>
+                              {job.consecutiveErrors > 0 && (
+                                <div style={{ fontSize: '0.65rem', color: 'var(--error)', marginTop: '3px' }}>
+                                  ⚠ {job.consecutiveErrors} consecutive error{job.consecutiveErrors > 1 ? 's' : ''}
+                                </div>
+                              )}
+                            </td>
+                            <td style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                              {fmtDuration(job.lastDurationMs)}
+                            </td>
+                            <td>
+                              <span className={`delivery-badge ${job.delivery?.mode === 'announce' ? 'active' : ''}`}>
+                                {job.delivery?.mode === 'announce' ? '📢' : '🔇'} {deliveryLabel(job.delivery)}
+                              </span>
+                            </td>
+                            <td>
+                              <div className="actions-cell" style={{ whiteSpace: 'nowrap' }}>
+                                <button className="text-btn" onClick={() => setSelectedJob(job)} title="Edit">
+                                  <Edit2 size={14} />
+                                </button>
+                                <button
+                                  className="text-btn"
+                                  disabled={loadingAction?.id === job.id && (loadingAction?.action === 'enable' || loadingAction?.action === 'disable')}
+                                  onClick={() => handleAction(job.id, job.status === 'disabled' ? 'enable' : (job.status === 'ok' ? 'disable' : 'enable'))}
+                                >
+                                  {loadingAction?.id === job.id && (loadingAction?.action === 'enable' || loadingAction?.action === 'disable')
+                                    ? <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                                    : (job.status === 'disabled' ? 'Enable' : (job.status === 'ok' ? 'Disable' : 'Enable'))}
+                                </button>
+                                <button
+                                  className="text-btn run"
+                                  disabled={loadingAction?.id === job.id && loadingAction?.action === 'run'}
+                                  onClick={() => handleAction(job.id, 'run')}
+                                  title="Run Now"
+                                >
+                                  {loadingAction?.id === job.id && loadingAction?.action === 'run'
+                                    ? <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                                    : <Play size={14} />}
+                                </button>
+                                <button className="text-btn" onClick={() => viewRuns(job.id)} title="View Logs">
+                                  <Activity size={14} />
+                                </button>
+                                <button
+                                  className="text-btn danger"
+                                  disabled={loadingAction?.id === job.id && loadingAction?.action === 'delete'}
+                                  onClick={() => handleDelete(job.id)}
+                                  title="Delete"
+                                >
+                                  {loadingAction?.id === job.id && loadingAction?.action === 'delete'
+                                    ? <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                                    : <Trash2 size={14} />}
+                                </button>
                               </div>
-                            )}
-                          </td>
-                          <td style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                            {fmtDuration(job.lastDurationMs)}
-                          </td>
-                          <td>
-                            <span className={`delivery-badge ${job.delivery?.mode === 'announce' ? 'active' : ''}`}>
-                              {job.delivery?.mode === 'announce' ? '📢' : '🔇'} {deliveryLabel(job.delivery)}
-                            </span>
-                          </td>
-                          <td>
-                            <div className="actions-cell" style={{ whiteSpace: 'nowrap' }}>
-                              <button className="text-btn" onClick={() => setSelectedJob(job)} title="Edit">
-                                <Edit2 size={14} />
-                              </button>
-                              <button
-                                className="text-btn"
-                                disabled={loadingAction?.id === job.id && (loadingAction?.action === 'enable' || loadingAction?.action === 'disable')}
-                                onClick={() => handleAction(job.id, job.status === 'disabled' ? 'enable' : (job.status === 'ok' ? 'disable' : 'enable'))}
-                              >
-                                {loadingAction?.id === job.id && (loadingAction?.action === 'enable' || loadingAction?.action === 'disable')
-                                  ? <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                                  : (job.status === 'disabled' ? 'Enable' : (job.status === 'ok' ? 'Disable' : 'Enable'))}
-                              </button>
-                              <button
-                                className="text-btn run"
-                                disabled={loadingAction?.id === job.id && loadingAction?.action === 'run'}
-                                onClick={() => handleAction(job.id, 'run')}
-                                title="Run Now"
-                              >
-                                {loadingAction?.id === job.id && loadingAction?.action === 'run'
-                                  ? <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                                  : <Play size={14} />}
-                              </button>
-                              <button className="text-btn" onClick={() => viewRuns(job.id)} title="View Logs">
-                                <Activity size={14} />
-                              </button>
-                              <button
-                                className="text-btn danger"
-                                disabled={loadingAction?.id === job.id && loadingAction?.action === 'delete'}
-                                onClick={() => handleDelete(job.id)}
-                                title="Delete"
-                              >
-                                {loadingAction?.id === job.id && loadingAction?.action === 'delete'
-                                  ? <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                                  : <Trash2 size={14} />}
-                              </button>
-                            </div>
-                          </td>
-                          <td>
-                            <span className="schedule-badge">{job.schedule}</span>
-                            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '2px' }}>{job.timezone}</div>
-                          </td>
-                        </tr>
-                      ))}
+                            </td>
+                            <td>
+                              <span className="schedule-badge">{job.schedule}</span>
+                              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '2px' }}>{job.timezone}</div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
               )}
             </div>
+          ) : view === 'agents' ? (
+            <AgentsPanel />
           ) : (
             <SettingsPanel settings={settings} onSave={fetchSettings} theme={theme} setTheme={setTheme} />
           )}

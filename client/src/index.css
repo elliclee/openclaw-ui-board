@@ -183,13 +183,13 @@ body[data-theme="dark"] {
 .nav-item {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 10px;
   padding: 8px 12px;
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
   font-size: 1.1rem;
   font-weight: 400;
-  /* Disable boldness for pixel font */
   cursor: pointer;
   transition: transform 0.1s ease, background 0.1s ease, color 0.1s ease;
   width: 100%;
@@ -546,13 +546,17 @@ tbody tr:hover td {
   border-left: 2px solid var(--status-idle);
 }
 
+.row-error td:first-child {
+  border-left: 2px solid var(--error);
+}
+
 .row-disabled {
   opacity: 0.5;
   filter: grayscale(1);
 }
 
 .row-disabled .job-name,
-.row-disabled .schedule-badge {
+.row-disabled .schedule-time {
   text-decoration: line-through;
 }
 

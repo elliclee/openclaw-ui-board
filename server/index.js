@@ -149,6 +149,90 @@ app.patch('/api/cron/jobs/:id', async (req, res) => {
     }
 });
 
+// --- Agents API ---
+
+function extractJson(output) {
+    try {
+        const str = output.trim();
+        const firstBracket = str.indexOf('[');
+        const firstBrace = str.indexOf('{');
+        const start = (firstBracket !== -1 && firstBrace !== -1) ? Math.min(firstBracket, firstBrace) : Math.max(firstBracket, firstBrace);
+        if (start !== -1) {
+            const lastBracket = str.lastIndexOf(']');
+            const lastBrace = str.lastIndexOf('}');
+            const end = (lastBracket !== -1 && lastBrace !== -1) ? Math.max(lastBracket, lastBrace) : Math.max(lastBracket, lastBrace);
+            if (end !== -1 && end >= start) {
+                return JSON.parse(str.substring(start, end + 1));
+            }
+        }
+    } catch (e) { }
+    return JSON.parse(output); // Fallback
+}
+
+app.get('/api/agents', async (req, res) => {
+    try {
+        const bin = getConfig().openclawBin || 'openclaw';
+        const output = await executeCommand(`${bin} agents list --json`);
+        res.json(extractJson(output));
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/agents', async (req, res) => {
+    try {
+        const bin = getConfig().openclawBin || 'openclaw';
+        const { name, workspace, model } = req.body;
+        const activeName = (name || 'New Agent').replace(/"/g, '');
+        const activeWorkspace = workspace ? `"${workspace}"` : `~/.openclaw/agents/${activeName.replace(/[^a-zA-Z0-9-]/g, '-').toLowerCase()}/agent`;
+        let cmd = `${bin} agents add "${activeName}" --workspace ${activeWorkspace} --agent-dir ${activeWorkspace} --non-interactive --json`;
+        if (model) cmd += ` --model "${model}"`;
+
+        // 1. Add agent
+        const output = await executeCommand(cmd);
+
+        // 2. Ensure auth & models files are copied over so it's "configured: true"
+        const copyCmd = `mkdir -p ${activeWorkspace}/agent && cp ~/.openclaw/agents/main/agent/{auth.json,models.json,auth-profiles.json} ${activeWorkspace}/agent/ 2>/dev/null || true`;
+        await executeCommand(copyCmd);
+
+        // 3. Restart the generic gateway to ensure the new agent list is loaded in memory
+        await executeCommand('systemctl --user restart openclaw-gateway || true');
+
+        res.json(extractJson(output));
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.patch('/api/agents/:id', async (req, res) => {
+    try {
+        const bin = getConfig().openclawBin || 'openclaw';
+        const { id } = req.params;
+        const { name, emoji, theme, avatar } = req.body;
+        let cmd = `${bin} agents set-identity --agent "${id}" --json`;
+        if (name) cmd += ` --name "${name}"`;
+        if (emoji) cmd += ` --emoji "${emoji}"`;
+        if (theme) cmd += ` --theme "${theme}"`;
+        if (avatar) cmd += ` --avatar "${avatar}"`;
+
+        const output = await executeCommand(cmd);
+        res.json(extractJson(output));
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/agents/:id', async (req, res) => {
+    try {
+        const bin = getConfig().openclawBin || 'openclaw';
+        const { id } = req.params;
+        const output = await executeCommand(`${bin} agents delete "${id}" --force --json`);
+        res.json(extractJson(output));
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.post('/api/cli/probe', async (req, res) => {
     try {
         const bin = getConfig().openclawBin || 'openclaw';
